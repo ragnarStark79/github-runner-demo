@@ -1,0 +1,66 @@
+name: Advanced Pipeline (Scheduled, Cached, Multi-Job)
+
+on:
+  push:
+    branches:
+      - main
+  # Trigger 1: Automatically runs at 12:00 AM UTC every single day (Nightly Build)
+  schedule:
+    - cron: '0 0 * * *'
+
+  # Trigger 2: Allows you to still click the "Run workflow" button manually
+  workflow_dispatch:
+
+jobs:
+  # Job 1: Independent Code Quality & Linting Check
+  linting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python Runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Run Syntax Linting
+        run: |
+          echo "Simulating code style checks..."
+          python -m py_compile app.py
+
+  # Job 2: Testing Phase (Requires Python packages and leverages dependency caching)
+  testing:
+    runs-on: ubuntu-latest
+    # Needs ensures this job ONLY runs if the linting job completes successfully
+    needs: linting
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python with Built-in Pip Caching
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip' # Instructs GitHub to cache pip packages automatically
+
+      - name: Install Project Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # If you have a requirements.txt file, it installs and caches here
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Execute Test Cases
+        run: |
+          echo "Running automated application tests 2..."
+          python app.py
+
+  # Job 3: Continuous Deployment Phase (Only runs if testing succeeds)
+  deployment:
+    runs-on: ubuntu-latest
+    needs: testing
+    steps:
+      - name: Deploy Application
+        run: |
+          echo "Deploying application to environment..."
+          echo "Workflow triggered via: ${{ github.event_name }}"
