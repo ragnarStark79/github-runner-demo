@@ -1,0 +1,41 @@
+name: Deploy to GitHub Container Registry (GHCR)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# CRITICAL: We must explicitly give the workflow permission to upload packages
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push-ghcr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. Login to GHCR instead of Docker Hub
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }} # Automatically uses the person who pushed the code
+          password: ${{ secrets.GITHUB_TOKEN }} # The automatic temporary password
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 2. Build and Push with the ghcr.io prefix
+      - name: Build and Push Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          # The format MUST be: ghcr.io/username/repository-name:tag
+          # Make sure 'github-runner-demo' is completely lowercase!
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/github-runner-demo:latest
+            ghcr.io/${{ github.repository_owner }}/github-runner-demo:${{ github.sha }}
