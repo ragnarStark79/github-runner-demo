@@ -42,7 +42,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip' # Instructs GitHub to cache pip packages automatically
+#          cache: 'pip' # Instructs GitHub to cache pip packages automatically
 
       - name: Install Project Dependencies
         run: |
